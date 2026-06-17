@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Influencer Verification POC — Phyllo</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f3; color: #1a1a1a; min-height: 100vh; padding: 2rem 1rem; }
+    .container { max-width: 620px; margin: 0 auto; }
+    h1 { font-size: 22px; font-weight: 600; margin-bottom: 4px; }
+    .subtitle { font-size: 14px; color: #666; margin-bottom: 2rem; }
+    .card { background: #fff; border: 1px solid #e5e5e5; border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+    .card-sub { font-size: 13px; color: #888; margin-bottom: 1.25rem; }
+    label { display: block; font-size: 13px; color: #555; margin-bottom: 5px; margin-top: 14px; }
+    label:first-of-type { margin-top: 0; }
+    input, select { width: 100%; padding: 9px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; background: #fafafa; outline: none; font-family: inherit; }
+    input:focus, select:focus { border-color: #999; background: #fff; }
+    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .btn { width: 100%; padding: 11px; font-size: 14px; font-weight: 600; background: #1a1a1a; color: #fff; border: none; border-radius: 8px; cursor: pointer; margin-top: 1.25rem; font-family: inherit; }
+    .btn:hover { background: #333; }
+    .btn-outline { background: transparent; color: #1a1a1a; border: 1px solid #ddd; }
+    .btn-outline:hover { background: #f5f5f5; }
+    .hidden { display: none; }
+    .step-bar { display: flex; align-items: center; margin-bottom: 2rem; }
+    .step { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #aaa; }
+    .step.active { color: #1a1a1a; font-weight: 600; }
+    .step.done { color: #16a34a; }
+    .step-num { width: 22px; height: 22px; border-radius: 50%; border: 1px solid #ddd; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; flex-shrink: 0; }
+    .step.active .step-num { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
+    .step.done .step-num { background: #dcfce7; color: #16a34a; border-color: #86efac; }
+    .step-line { flex: 1; height: 1px; background: #e5e5e5; margin: 0 6px; }
+    .log-box { background: #f9f9f9; border: 1px solid #e5e5e5; border-radius: 8px; padding: 12px; font-size: 12px; font-family: monospace; color: #444; max-height: 160px; overflow-y: auto; margin-top: 12px; }
+    .log-line { padding: 2px 0; }
+    .log-ok { color: #16a34a; }
+    .log-err { color: #dc2626; }
+    .log-info { color: #2563eb; }
+    .badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 6px; white-space: nowrap; }
+    .badge-pass { background: #dcfce7; color: #15803d; }
+    .badge-fail { background: #fee2e2; color: #b91c1c; }
+    .badge-warn { background: #fef9c3; color: #a16207; }
+    .badge-unknown { background: #f3f4f6; color: #6b7280; }
+    .result-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid #f0f0f0; font-size: 14px; }
+    .result-row:last-child { border-bottom: none; }
+    .result-label { flex: 1; }
+    .result-sub { font-size: 12px; color: #888; margin-top: 2px; }
+    .metric-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 1rem 0; }
+    .metric { background: #f9f9f9; border-radius: 8px; padding: 12px; text-align: center; }
+    .metric-val { font-size: 22px; font-weight: 700; }
+    .metric-label { font-size: 11px; color: #888; margin-top: 3px; }
+    .verdict { border-radius: 10px; padding: 14px 16px; margin-bottom: 1rem; display: flex; gap: 12px; align-items: flex-start; }
+    .verdict-pass { background: #f0fdf4; border: 1px solid #86efac; }
+    .verdict-fail { background: #fff1f2; border: 1px solid #fca5a5; }
+    .verdict-warn { background: #fefce8; border: 1px solid #fde047; }
+    .verdict-unknown { background: #f9fafb; border: 1px solid #e5e7eb; }
+    .verdict-title { font-size: 14px; font-weight: 600; }
+    .verdict-desc { font-size: 13px; color: #555; margin-top: 2px; }
+    .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid #ddd; border-top-color: #555; border-radius: 50%; animation: spin .7s linear infinite; vertical-align: middle; margin-right: 6px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .phyllo-btn { width: 100%; padding: 12px; font-size: 14px; font-weight: 600; background: #6c3fce; color: #fff; border: none; border-radius: 8px; cursor: pointer; margin-top: 1rem; font-family: inherit; }
+    .phyllo-btn:hover { background: #5b34ad; }
+    .phyllo-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .note { font-size: 12px; color: #888; background: #f9f9f9; border-radius: 6px; padding: 10px 12px; margin-top: 10px; border-left: 3px solid #ddd; }
+    .tabs { display: flex; gap: 4px; margin-bottom: 1.5rem; background: #efefed; border-radius: 8px; padding: 3px; }
+    .tab { flex: 1; padding: 7px; font-size: 13px; font-weight: 500; text-align: center; border-radius: 6px; cursor: pointer; color: #888; border: none; background: transparent; font-family: inherit; }
+    .tab.active { background: #fff; color: #1a1a1a; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { text-align: left; padding: 8px 10px; color: #888; font-weight: 500; border-bottom: 1px solid #f0f0f0; font-size: 12px; }
+    td { padding: 10px; border-bottom: 1px solid #f7f7f7; vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    .empty { text-align: center; padding: 2rem; color: #aaa; font-size: 13px; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>Influencer Verification POC</h1>
+  <p class="subtitle">Powered by Phyllo · Sandbox mode</p>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('verify')">Verify Influencer</button>
+    <button class="tab" onclick="switchTab('records')">Records</button>
+  </div>
+
+  <!-- VERIFY TAB -->
+  <div id="tab-verify">
+    <div class="step-bar">
+      <div class="step active" id="s1"><div class="step-num">1</div><span>Details</span></div>
+      <div class="step-line"></div>
+      <div class="step" id="s2"><div class="step-num">2</div><span>Connect</span></div>
+      <div class="step-line"></div>
+      <div class="step" id="s3"><div class="step-num">3</div><span>Results</span></div>
+    </div>
+
+    <!-- STEP 1 -->
+    <div id="view1">
+      <div class="card">
+        <p class="card-title">Influencer details</p>
+        <p class="card-sub">Enter the influencer's info and their claimed follower count.</p>
+        <div class="row2">
+          <div><label>First name</label><input id="fname" placeholder="e.g. Priya"/></div>
+          <div><label>Last name</label><input id="lname" placeholder="e.g. Sharma"/></div>
+        </div>
+        <label>Email</label>
+        <input id="email" type="email" placeholder="priya@example.com"/>
+        <label>Platform to verify</label>
+        <select id="platform">
+          <option value="">Select platform...</option>
+          <option value="9bb8913b-ddd9-430b-a66a-d74d846e6c66">Instagram</option>
+          <option value="14d9ddf5-51c6-415e-bde6-f8ed36ad7054">YouTube</option>
+          <option value="de55aeec-0dc8-4119-bf90-16b3d1f0c987">TikTok</option>
+          <option value="a416e7ef-c252-4938-9e7d-b9f3d1bbee61">Twitter / X</option>
+          <option value="7645460a-96e0-4192-a3ce-a1fc30641f72">Twitch</option>
+        </select>
+        <label>Claimed follower count</label>
+        <input id="claimed" type="number" placeholder="e.g. 85000"/>
+      </div>
+      <button class="btn" onclick="step1Next()">Continue →</button>
+    </div>
+
+    <!-- STEP 2 -->
+    <div id="view2" class="hidden">
+      <div class="card">
+        <p class="card-title">Connect via Phyllo</p>
+        <p class="card-sub">We'll create a Phyllo user and launch the connect window.</p>
+        <div class="log-box" id="log"></div>
+        <button class="phyllo-btn" id="phyllo-btn" onclick="launchPhyllo()" disabled>⏳ Setting up...</button>
+        <div class="note">A Phyllo popup will open. Use sandbox test credentials to simulate a login.</div>
+      </div>
+    </div>
+
+    <!-- STEP 3 -->
+    <div id="view3" class="hidden">
+      <div id="verdict-wrap"></div>
+      <div class="metric-grid" id="metrics"></div>
+      <div class="card">
+        <p class="card-title" style="margin-bottom:1rem">Verification checks</p>
+        <div id="checks"></div>
+      </div>
+      <div class="card" style="background:#f0fdf4;border-color:#86efac;">
+        <p style="font-size:13px;color:#15803d;">✓ This record has been saved to the database. Click <strong>Records</strong> tab to view all.</p>
+      </div>
+      <button class="btn btn-outline" onclick="restart()" style="margin-top:0.5rem">← Verify another influencer</button>
+    </div>
+  </div>
+
+  <!-- RECORDS TAB -->
+  <div id="tab-records" class="hidden">
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
+        <p class="card-title" style="margin:0">All verified influencers</p>
+        <button onclick="loadRecords()" style="font-size:12px;padding:5px 10px;border:1px solid #ddd;border-radius:6px;background:#fff;cursor:pointer;">↻ Refresh</button>
+      </div>
+      <div id="records-body"><p class="empty">Loading...</p></div>
+    </div>
+  </div>
+</div>
+
+<script>
+let state = {};
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('tab-verify').classList.toggle('hidden', tab !== 'verify');
+  document.getElementById('tab-records').classList.toggle('hidden', tab !== 'records');
+  if (tab === 'records') loadRecords();
+}
+
+function show(id) { document.getElementById(id).classList.remove('hidden'); }
+function hide(id) { document.getElementById(id).classList.add('hidden'); }
+function setStep(n) {
+  [1,2,3].forEach(i => {
+    const el = document.getElementById('s'+i);
+    el.classList.remove('active','done');
+    if (i < n) el.classList.add('done');
+    else if (i === n) el.classList.add('active');
+  });
+}
+function log(msg, type='info') {
+  const box = document.getElementById('log');
+  const line = document.createElement('div');
+  line.className = 'log-line log-' + type;
+  line.textContent = (type==='ok'?'✓ ':type==='err'?'✗ ':'→ ') + msg;
+  box.appendChild(line);
+  box.scrollTop = box.scrollHeight;
+}
+
+function step1Next() {
+  const fname = document.getElementById('fname').value.trim();
+  const lname = document.getElementById('lname').value.trim();
+  const email = document.getElementById('email').value.trim();
+  const platform = document.getElementById('platform');
+  const platformVal = platform.value;
+  const platformName = platform.options[platform.selectedIndex].text;
+  const claimed = parseInt(document.getElementById('claimed').value);
+  if (!fname || !lname || !email || !platformVal || !claimed) { alert('Please fill in all fields.'); return; }
+  state = { fname, lname, email, platform: platformVal, platformName, claimed };
+  hide('view1'); show('view2'); setStep(2);
+  setupPhyllo();
+}
+
+async function setupPhyllo() {
+  try {
+    log('Creating Phyllo user for ' + state.fname + '...');
+    const userRes = await fetch('/api/create-user', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: state.fname + ' ' + state.lname })
+    });
+    if (!userRes.ok) throw new Error('User creation failed: ' + userRes.status);
+    const user = await userRes.json();
+    state.userId = user.id;
+    log('User created. ID: ' + user.id, 'ok');
+    log('Generating SDK token...');
+    const tokenRes = await fetch('/api/create-token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: user.id })
+    });
+    if (!tokenRes.ok) throw new Error('Token creation failed: ' + tokenRes.status);
+    const tokenData = await tokenRes.json();
+    state.sdkToken = tokenData.sdk_token;
+    log('Ready to connect!', 'ok');
+    const btn = document.getElementById('phyllo-btn');
+    btn.disabled = false;
+    btn.textContent = '🔗 Launch Phyllo Connect';
+  } catch(err) {
+    log('Error: ' + err.message, 'err');
+  }
+}
+
+function launchPhyllo() {
+  document.getElementById('phyllo-btn').disabled = true;
+  document.getElementById('phyllo-btn').innerHTML = '<span class="spinner"></span>Opening Phyllo...';
+  log('Loading Phyllo SDK...');
+  const script = document.createElement('script');
+  script.src = 'https://cdn.getphyllo.com/connect/v2/phyllo-connect.js';
+  script.onload = () => {
+    log('SDK loaded. Opening connect window...', 'ok');
+    const phylloConnect = PhylloConnect.initialize({
+      clientDisplayName: 'Influencer Verify POC',
+      environment: 'staging',
+      userId: state.userId,
+      token: state.sdkToken,
+      workPlatformId: state.platform,
+    });
+    phylloConnect.on('accountConnected', (accountId, workPlatformId, userId) => {
+      state.accountId = accountId;
+      log('Account connected! ID: ' + accountId, 'ok');
+      fetchAndVerify(accountId);
+    });
+    phylloConnect.on('accountDisconnected', (accountId, workPlatformId, userId) => {
+      log('Account disconnected.', 'info');
+    });
+    phylloConnect.on('tokenExpired', (userId) => {
+      log('Token expired. Please refresh.', 'err');
+    });
+    phylloConnect.on('exit', (reason, userId) => {
+      log('Window closed: ' + (reason || 'user closed'));
+      document.getElementById('phyllo-btn').disabled = false;
+      document.getElementById('phyllo-btn').textContent = '🔗 Launch Phyllo Connect';
+    });
+    phylloConnect.open();
+  };
+  script.onerror = () => log('Failed to load Phyllo SDK.', 'err');
+  document.head.appendChild(script);
+}
+
+async function fetchAndVerify(accountId) {
+  log('Fetching verified follower data...');
+  try {
+    const res = await fetch('/api/get-identity?account_id=' + accountId);
+    const data = await res.json();
+    const verifiedFollowers = data.follower_count ?? data.subscriber_count ?? null;
+    log('Verified followers: ' + (verifiedFollowers ?? 'N/A'), 'ok');
+    await showResults(verifiedFollowers, accountId);
+  } catch(err) {
+    log('Could not fetch profile: ' + err.message, 'err');
+    await showResults(null, accountId);
+  }
+}
+
+async function showResults(verifiedFollowers, accountId) {
+  hide('view2'); show('view3'); setStep(3);
+  const claimed = state.claimed;
+  let variancePct = null, status = 'unknown';
+  if (verifiedFollowers !== null) {
+    variancePct = Math.round(Math.abs(verifiedFollowers - claimed) / claimed * 100);
+    status = variancePct <= 10 ? 'pass' : variancePct <= 25 ? 'warn' : 'fail';
+  }
+
+  // Save to database
+  await fetch('/api/save-influencer', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      name: state.fname + ' ' + state.lname,
+      email: state.email,
+      platform: state.platformName,
+      claimed: claimed,
+      verified: verifiedFollowers,
+      variance: variancePct,
+      status: status,
+      phyllo_user_id: state.userId,
+      phyllo_account_id: accountId
+    })
+  });
+  log('Record saved to database ✓', 'ok');
+
+  const verdicts = {
+    pass:    { cls:'verdict-pass',    icon:'✅', title:'Verified — follower count checks out',    desc:'Account authenticated and follower count is within 10% of claimed value.' },
+    warn:    { cls:'verdict-warn',    icon:'⚠️', title:'Review needed — discrepancy found',       desc:'Follower count differs by more than 10% from what was claimed.' },
+    fail:    { cls:'verdict-fail',    icon:'❌', title:'Failed — significant mismatch',            desc:'Follower count differs by more than 25%. Likely inflated numbers.' },
+    unknown: { cls:'verdict-unknown', icon:'⚠️', title:'Account connected — count unavailable',  desc:'Authenticated but follower data not returned in sandbox mode.' },
+  };
+  const v = verdicts[status];
+  document.getElementById('verdict-wrap').innerHTML = `<div class="verdict ${v.cls}"><span style="font-size:22px">${v.icon}</span><div><div class="verdict-title">${v.title}</div><div class="verdict-desc">${v.desc}</div></div></div>`;
+  document.getElementById('metrics').innerHTML = `
+    <div class="metric"><div class="metric-val">${claimed.toLocaleString()}</div><div class="metric-label">Claimed</div></div>
+    <div class="metric"><div class="metric-val">${verifiedFollowers !== null ? verifiedFollowers.toLocaleString() : '—'}</div><div class="metric-label">Verified</div></div>
+    <div class="metric"><div class="metric-val" style="color:${status==='pass'?'#16a34a':status==='fail'?'#dc2626':'#ca8a04'}">${variancePct !== null ? variancePct+'%' : '—'}</div><div class="metric-label">Variance</div></div>`;
+  document.getElementById('checks').innerHTML = `
+    <div class="result-row"><div class="result-label"><div>Account authentication</div><div class="result-sub">Logged in via Phyllo OAuth</div></div><span class="badge badge-pass">✓ Authed</span></div>
+    <div class="result-row"><div class="result-label"><div>Account ownership</div><div class="result-sub">Confirmed they own the ${state.platformName} account</div></div><span class="badge badge-pass">✓ Confirmed</span></div>
+    <div class="result-row"><div class="result-label"><div>Follower count accuracy</div><div class="result-sub">Claimed: ${claimed.toLocaleString()} · Verified: ${verifiedFollowers !== null ? verifiedFollowers.toLocaleString() : 'N/A'} · Variance: ${variancePct !== null ? variancePct+'%' : 'N/A'}</div></div><span class="badge badge-${status==='pass'?'pass':status==='warn'?'warn':status==='fail'?'fail':'unknown'}">${status==='pass'?'✓ Pass':status==='warn'?'⚠ Review':status==='fail'?'✗ Fail':'? Unknown'}</span></div>`;
+}
+
+async function loadRecords() {
+  document.getElementById('records-body').innerHTML = '<p class="empty">Loading...</p>';
+  try {
+    const res = await fetch('/api/influencers');
+    const records = await res.json();
+    if (!records.length) {
+      document.getElementById('records-body').innerHTML = '<p class="empty">No records yet. Verify an influencer first!</p>';
+      return;
+    }
+    const badgeMap = { pass: 'badge-pass', warn: 'badge-warn', fail: 'badge-fail', unknown: 'badge-unknown' };
+    const labelMap = { pass: '✓ Pass', warn: '⚠ Review', fail: '✗ Fail', unknown: '? Unknown' };
+    document.getElementById('records-body').innerHTML = `
+      <table>
+        <thead><tr><th>Name</th><th>Email</th><th>Platform</th><th>Claimed</th><th>Verified</th><th>Status</th><th>Date</th></tr></thead>
+        <tbody>${records.map(r => `
+          <tr>
+            <td style="font-weight:500">${r.name}</td>
+            <td style="color:#888">${r.email}</td>
+            <td>${r.platform}</td>
+            <td>${r.claimed ? r.claimed.toLocaleString() : '—'}</td>
+            <td>${r.verified ? r.verified.toLocaleString() : '—'}</td>
+            <td><span class="badge ${badgeMap[r.status] || 'badge-unknown'}">${labelMap[r.status] || r.status}</span></td>
+            <td style="color:#aaa;font-size:12px">${r.created_at ? r.created_at.split('T')[0] : ''}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>`;
+  } catch(err) {
+    document.getElementById('records-body').innerHTML = '<p class="empty">Could not load records. Is the server running?</p>';
+  }
+}
+
+function restart() {
+  state = {};
+  document.getElementById('log').innerHTML = '';
+  ['fname','lname','email','claimed'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('platform').value = '';
+  hide('view2'); hide('view3'); show('view1'); setStep(1);
+}
+</script>
+</body>
+</html>
